@@ -1,18 +1,33 @@
+<!-- Luke Roche -->
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Triangle WebGL</title>
     <script id="vertex-shader" type="x-shader/x-vertex">
         attribute vec4 vPosition;
+        uniform float u_offset;
         void main(){
-        gl_Position = vPosition;
-    }
+            gl_Position = vec4(vPosition.x+ vPosition.z * u_offset, vPosition.y , 0, 1);
+        }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">
+
         precision mediump float;
+        uniform float u_time;
+        #define WIDTH 852.0
+        #define HEIGHT 480.0
         void main(){
-        gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
-    }
+            if(gl_FragCoord.y > HEIGHT / 2.0)
+                gl_FragColor = vec4(-0.25 + 0.5*cos(sin(u_time)+gl_FragCoord.xyx+vec3(0,2,4)),1.0);
+            else{
+                if(gl_FragCoord.x > WIDTH / 2.0)
+                    gl_FragColor = vec4(-0.25 + 0.5*cos(sin(u_time)+normalize(gl_FragCoord).xyx+vec3(0,2,4)),1.0);
+                else
+                    gl_FragColor = vec4(0.5 + 0.5*sin(cos(u_time)+normalize(gl_FragCoord).xyx+vec3(0,2,4)),1.0);
+            }
+            
+        }
     </script>
     <script type="text/javascript" src="../Common/webgl-utils.js"></script>
     <script type="text/javascript" src="../Common/initShaders.js"></script>
@@ -21,7 +36,7 @@
 </head>
 <body>
     <h1> <center> Triangle </center> </h1>
-    <canvas id="gl-canvas" width="512" height="512">
+    <canvas id="gl-canvas" width="852" height="480"> <!--Made it 480p-->
     Oops ... your browser doesn't support the HTML5 canvas element
     </canvas>
 </body>
