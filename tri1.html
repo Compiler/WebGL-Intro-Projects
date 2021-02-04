@@ -1,0 +1,83 @@
+<!-- Luke Roche -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Triangle WebGL</title>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        uniform float u_offset;
+        void main(){
+            gl_Position = vec4(vPosition.x+ vPosition.z * u_offset, vPosition.y , 0, 1);
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform float u_time;
+        #define WIDTH 852.0
+        #define HEIGHT 480.0
+        #define MAX_STEPS 100
+        #define MAX_DIST 100.0
+        #define CLOSE_DIST 0.01
+
+        float getDist(vec3 point){
+            vec4 sphere = vec4(0, 1, 6, 1);//x,y,distance,radius
+            float sphereDistance = length(point-sphere.xyz) - sphere.w;
+            float planeDist = point.y;
+            float distance = min(sphereDistance, planeDist);
+            return distance;
+        }
+        float rayMarch(vec3 rayOrigin, vec3 rayDir){
+            float distFromOrigin = 0.0;
+
+            for(int i = 0; i < MAX_STEPS; i++){
+                vec3 point = rayOrigin + rayDir * distFromOrigin;
+                float distToScene = getDist(point);
+                distFromOrigin += distToScene;
+                if(distFromOrigin > MAX_DIST || distToScene < CLOSE_DIST) break;
+
+            }
+
+            return distFromOrigin;
+
+        }
+        vec3 getNormal(vec3 point){
+            float distance = getDist(point);
+            vec2 tr = vec2(0.01, 0);
+            vec3 normal = distance - vec3(getDist(point - tr.xyy), getDist(point - tr.yxy), getDist(point - tr.yyx));
+            return normalize(normal);
+        }
+        float getLight(vec3 point){
+            vec3 lightPosition = vec3(0, 5, 6);
+            lightPosition.xz += vec2(sin(u_time), cos(u_time));
+            vec3 light = normalize(lightPosition - point);
+            vec3 normal = getNormal(point);
+            float dif = clamp(dot(normal, light), 0.0, 1.0);
+            return dif;
+        }
+        void main(){
+            vec2 res = vec2(WIDTH,HEIGHT);
+            vec2 uv = (gl_FragCoord.xy -0.5*res.xy)/res.y;
+
+            vec3 rayOrigin = vec3(0,1,0);
+            vec3 rayDirection = normalize(vec3(uv, 1));
+
+            float dist = rayMarch(rayOrigin, rayDirection);
+            vec3 point = rayOrigin + rayDirection * dist;
+            float diffuse = getLight(point);
+            vec3 color = vec3(diffuse);
+            gl_FragColor = vec4(color,1);
+        }
+    </script>
+    <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../Common/initShaders.js"></script>
+    <script type="text/javascript" src="../Common/MV.js"></script>
+    <script type="text/javascript" src="triangle.js"></script>
+</head>
+<body>
+    <h1> <center> Triangle </center> </h1>
+    <canvas id="gl-canvas" width="852" height="480"> <!--Made it 480p-->
+    Oops ... your browser doesn't support the HTML5 canvas element
+    </canvas>
+</body>
+</html>
