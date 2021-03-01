@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!––----------------------------–---------------------------------->
+<!–– Prof R Intro to CG Project 1 code for scanline algorithm    ––>
+<!––---------------------––-----–---------------------------------->
+<html>
+<head>
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform mat4 u_xformMatrix;
+uniform mat4 u_orthoMatrix;
+void main(){
+  gl_Position = u_orthoMatrix * u_xformMatrix * vPosition;
+}
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+void main(){
+    gl_FragColor = vec4( 0.8, 0.8, 0.8, 1.0 );
+}
+</script>
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="scanline_proj1ToDo.js"></script>
+</head>
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
