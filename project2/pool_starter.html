@@ -1,33 +1,26 @@
 <!DOCTYPE html>
 <!��----------------------------�-------------------->
-<!�� Prof R Intro to CG lect 6 diamond Interactive ��>
+<!�� Prof R Intro to CG Pool game                  ��>
 <!��---------------------��-----�-------------------->
 <html>
 <head>
 
-<p> </p>
-
-<button id="LeftEye">Left Eye</button>
-<button id="RightEye">Right Eye</button>
-<p> </p>
-<button id="Nose">Nose</button>
-<button id="Mouth">Mouth</button>
-<p> </p>
 
 <!��----------------->
 <!�� Vertex Shader ��>
 <!��----------------->
 
 <script id="vertex-shader" type="x-shader/x-vertex">
-attribute vec2 vPosition;
-uniform mat4 P;
-uniform mat4 MV;
-uniform float u_time;
-
+attribute vec3 vPosition;
+attribute vec3 vColor;
+uniform mat4 u_proj;
+uniform mat4 u_mv;
+varying vec3 oColor;
 void
 main()
 {
-   gl_Position = P * MV * vec4(vPosition, 0, 1);
+   oColor = vColor;
+   gl_Position = u_proj * u_mv * vec4(vPosition.xyz, 1);
 }
 </script>
 
@@ -38,12 +31,12 @@ main()
 <script id="fragment-shader" type="x-shader/x-fragment">
 precision mediump float;
 
-uniform vec3 color; // Declare a uniform variable in fragment shader
+varying vec3 oColor;
 
 void
 main()
 {
-   gl_FragColor = vec4(color, 1.0);
+   gl_FragColor = vec4(oColor, 1.0);
 }
 </script>
 
@@ -54,7 +47,7 @@ main()
 <script type="text/javascript" src="../Common/webgl-utils.js"></script>
 <script type="text/javascript" src="../Common/initShaders.js"></script>
 <script type="text/javascript" src="../Common/MVnew.js"></script>
-<script type="text/javascript" src="blockHead.js"></script>
+<script type="text/javascript" src="pool_starter.js"></script>
 </head>
 
 <!��------------------->
@@ -63,7 +56,6 @@ main()
 
 <body>
 <canvas id="gl-canvas" width="1280" height="720">
-   <!---- Set canvas to be 720P -->
    Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
 </body>

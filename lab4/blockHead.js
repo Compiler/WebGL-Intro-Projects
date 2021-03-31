@@ -13,6 +13,14 @@ var topBound = 10;        // top limit of worlds coord
 var near = -10;           // near clip plane
 var far = 10;             // far clip plane
 
+var chosen_leftEye = 0;
+var chosen_rightEye = 1;
+var chosen_nose  = 2;
+var chosen_mouth = 3;
+var chosenItem = 0;
+
+var startTime, endTime;
+
 var red = .5;            
 var blue = 0.0;
 var green = 0.0;
@@ -23,6 +31,7 @@ var green = 0.0;
 window.onload = function init()
 {
     var canvas = document.getElementById( "gl-canvas" ); // Get HTML canvas
+    startTime = new Date();
     
     gl = WebGLUtils.setupWebGL( canvas );                // Get an OpenGL context
     if ( !gl ) { alert( "WebGL isn't available" ); }
@@ -67,25 +76,13 @@ window.onload = function init()
     render();
 };
 
-// Three callback functions for 3 color sliders, one red, one green, and one blue
-document.getElementById("Red").onchange = function () {
-    red = event.srcElement.value / 255;
-};
 
-document.getElementById("Green").onchange = function () {
-    green = event.srcElement.value / 255;
-};
-
-document.getElementById("Blue").onchange = function () {
-    blue = event.srcElement.value / 255;
-    //console.log(blue);  // To print value to console
-};
 
 // Four callback functions for the four Pan buttons
-document.getElementById("PanLeft").onclick = function () { left += -0.4; right += -0.4 };
-document.getElementById("PanRight").onclick = function () { left += 0.4; right += 0.4 };
-document.getElementById("PanDown").onclick = function () { bottom += -0.4; topBound += -0.4 };
-document.getElementById("PanUp").onclick = function () { bottom += 0.4; topBound += 0.4 };
+document.getElementById("LeftEye").onclick = function () { chosenItem = chosen_leftEye; };
+document.getElementById("RightEye").onclick = function () { chosenItem = chosen_rightEye; };
+document.getElementById("Nose").onclick = function () { chosenItem = chosen_nose; };
+document.getElementById("Mouth").onclick = function () { chosenItem = chosen_mouth; };
 
 // Callback function for keydown events, rgeisters function dealWithKeyboard
 window.addEventListener("keydown", dealWithKeyboard, false);
@@ -110,6 +107,7 @@ function dealWithKeyboard(e) {
 
 function DrawBlockHead()
 {
+    var time = (new Date() - startTime);
     var colorLoc = gl.getUniformLocation(program, "color");      // Get fragment shader memory location of color
     gl.uniform3f(colorLoc, red, green, blue);                    // Set RGB of frangment shader uniform variable "color" to (red,green, blue)
 
@@ -126,25 +124,34 @@ function DrawBlockHead()
 
     gl.uniform3f(colorLoc, 1.0, 1.0, 0.0);                       // Set RGB of frangment shader uniform variable "color" to yellow
 
+    var rotation = rotate(time, vec3(0.5, 1, 1));
+
+    
     // Left eye
     modelView = translate(-2.5, 2.0, 0.0);                       // translate the unit square -2.5 in the x direction, and 2.0 in the y direction storing in modelView
+    if(chosenItem == chosen_leftEye) modelView = mult(translate(-2.5, 2.0, 0.0), rotation);
     gl.uniformMatrix4fv(MV_loc, false, flatten(modelView));      // push values of modelView matrix down to the vertex shader uniform variable MV
     gl.drawArrays(gl.LINE_LOOP, 0, 4);                           // Invoke the render of the left eye
 
     // Right eye
     modelView = translate(2.5, 2.0, 0.0);                        // translate the unit square -2.5 in the x direction, and 2.0 in the y direction storing in modelView
+    if(chosenItem == chosen_rightEye) modelView = mult(translate(2.5, 2.0, 0.0), rotation);
     gl.uniformMatrix4fv(MV_loc, false, flatten(modelView));      // push values of modelView matrix down to the vertex shader uniform variable MV
     gl.drawArrays(gl.LINE_LOOP, 0, 4);                           // Invoke the render of the right eye
 
     // Nose
-    modelView = translate(0.0, 0.0, 0.0);                        // Set the modelView matrix to the identity matrix
+    modelView = translate(0.0, 0.0, 0.0);   
+    if(chosenItem == chosen_nose) modelView = rotation;
+                         // Set the modelView matrix to the identity matrix
     gl.uniformMatrix4fv(MV_loc, false, flatten(modelView));      // push values of modelView matrix down to the vertex shader uniform variable MV
     gl.drawArrays(gl.LINE_LOOP, 0, 4);                           // Invoke the render of the nose
 
     // Mouth
     scaleMat = scale(5.0, 1.0, 0.0);                             // Scale unit square in x-direction by 5.0 to form a 5x1 rectangle
     translateMat = translate(0.0, -2.0, 0.0);                    // Translate the 5x1 rectangle down -2.0 in the y direction
-    modelView = mult(translateMat, scaleMat);                    // Compose the scale and the translate via matrix multiply storing the result in the modelView matrix
+    modelView = mult(translateMat, scaleMat);  
+    if(chosenItem == chosen_mouth) modelView = mult(mult(translateMat, scaleMat), rotation);
+                      // Compose the scale and the translate via matrix multiply storing the result in the modelView matrix
     gl.uniformMatrix4fv(MV_loc, false, flatten(modelView));      // push values of modelView matrix down to the vertex shader uniform variable MV
     gl.drawArrays(gl.LINE_LOOP, 0, 4);                           // Invoke the render of the mouth rectangle
 
