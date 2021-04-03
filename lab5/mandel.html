@@ -1,0 +1,60 @@
+<!-- Luke Roche -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mandel</title>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec2 vPosition;
+        uniform mat4 u_proj;
+        void main(){
+            gl_Position = u_proj * vec4(vPosition.x, vPosition.y , 0, 1);
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec2 viewportDimensions;
+        uniform float left;
+        uniform float right;
+        uniform float topBound;
+        uniform float bottom;
+
+        #define MAX_ITERATIONS 2000.0
+        #define MAX_ITERATIONS_I 2000
+        void main(){
+            float v = 0.0;
+            float a = gl_FragCoord.x / viewportDimensions.x;
+            float b = gl_FragCoord.y / viewportDimensions.y;
+            vec2 c = vec2(left+ a * (right-left), bottom + b * (topBound-bottom));
+            
+            vec2 z = c;
+            float iters = 0.0;
+
+            for(int i = 0; i < MAX_ITERATIONS_I; i++){
+                float t = 2.0 * z.x * z.y + c.y;
+                z.x = z.x * z.x-z.y * z.y+ c.x;z.y= t;
+                v = z.x * z.x+ z.y * z.y;
+                if(v > 4.0) break;
+                iters += 1.0;
+
+                const float PI = 3.14159;
+                v = min(v, 1.0);
+                gl_FragColor.r = cos(v * 180.0);
+                gl_FragColor.g =  cos(iters);
+                gl_FragColor.b = smoothstep(gl_FragColor.r, gl_FragColor.g, 1.0) * 0.25;
+                gl_FragColor.a = 1.0;
+            }
+
+        }
+    </script>
+    <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../Common/initShaders.js"></script>
+    <script type="text/javascript" src="../Common/MV.js"></script>
+    <script type="text/javascript" src="mandel.js"></script>
+</head>
+<body>
+    <canvas id="gl-canvas" width="852" height="480"> <!--Made it 480p-->
+    Oops ... your browser doesn't support the HTML5 canvas element
+    </canvas>
+</body>
+</html>
