@@ -12,109 +12,28 @@ var linePoint2_W = vec2(5.0, 5.0);
 var linebufferId;
 var circleBufferId;
 var tableBufferId;
-var table;
 var circleVertices = [];
 
 var left = -10;           // left limit of world coords
-var right = 94;           // right limit of world coords
+var right = 66;           // right limit of world coords
 var bottom = -10;         // bottom limit of world coords
 var topBound = 66;        // top limit of worlds coord
 var near = -10;           // near clip plane
 var far = 10;             // far clip plane
 
 // pool ball weighs 5.5 oz (.34375 lbs), the cue ball weighs 6.0 oz
-class Ball{
 
-    constructor (pos, col) {
-        this.color = col;  // ball color
-        this.radius = 1.0;
-        this.mass = 0.010684;              // ball mass = .34375 lbs / (G = 32.174049)
-        this.recpMass = 93.5979;           // 1.0 / mass
-        this.elasticity = 0.8;
-        this.position = pos;    // ball position
-        this.velocity = vec2(0.0, 0.0);    // ball velocity 
-        this.forceAccum = vec2(0.0, 0.0);  // force accumulator
-        this.vertices = [];
-        this.vertex_count = 0;
-        this.fineness = 5;
-    }
-
-    update(){
-        this.position[0] += this.velocity[0];
-        this.position[1] += this.velocity[1];
-        this.vertices = [];
-        this.init();
-
-    }
-
-    init(){        
-        //triangulate circle
-        for (var degs = 0; degs <= 360; ) {
-            
-             var radians = RadiansToDegs(degs);
-             this.vertices.push((this.position[0]));
-             this.vertices.push((this.position[1])); 
-             this.vertices.push(0);  
-             this.vertices.push(this.color[0]);this.vertices.push(this.color[1]);this.vertices.push(this.color[2]);
-            
-             this.vertices.push(this.position [0] + (Math.cos(radians) * radius));
-             this.vertices.push(this.position [1] + (Math.sin(radians) * radius));
-             this.vertices.push(0);
-             this.vertices.push(this.color[0]);this.vertices.push(this.color[1]);this.vertices.push(this.color[2]);
-
-             degs+=this.fineness;
-             radians = RadiansToDegs(degs);
-
-             this.vertices.push(this.position [0] + (Math.cos(radians) * radius));
-             this.vertices.push(this.position [1] + (Math.sin(radians) * radius));
-             this.vertices.push(0);
-             this.vertices.push(this.color[0]);this.vertices.push(this.color[1]);this.vertices.push(this.color[2]);
-             this.vertex_count += 9;
-
-
-        }
-        
-    }
-
+function Ball() {
+    this.color = vec3(0.9, 0.9, 0.9);  // ball color
+    this.radius = 1.0;
+    this.mass = 0.010684;              // ball mass = .34375 lbs / (G = 32.174049)
+    this.recpMass = 93.5979;           // 1.0 / mass
+    this.elasticity = 0.8;
+    this.position = vec2(0.0, 0.0);    // ball position
+    this.velocity = vec2(0.0, 0.0);    // ball velocity 
+    this.forceAccum = vec2(0.0, 0.0);  // force accumulator
 }
 
-class BallBag{
-
-    constructor(){
-        this.balls = [
-            new Ball(vec2(45.0, 27.4), vec3(0.9, 0.9, 0.9)),
-            new Ball(vec2(21.0, 28.0), vec3(0.8, 0.8, 0.0))
-        ];
-
-        this.vertices = [];
-        this.vertex_count = 0;
-
-    }
-
-    update(){
-        this.vertices = [];
-        for(var i = 0; i < this.balls.length; i++) {
-            this.balls[i].update();
-            for(var k = 0; k < this.balls[i].vertices.length; k++){
-                this.vertices.push(this.balls[i].vertices[k]);
-            }
-        }
-    }
-
-    init(){
-        this.vertex_count += 6;
-        for(var i = 0; i < this.balls.length; i++) {
-            this.balls[i].init();
-            this.vertex_count += this.balls[i].vertex_count;
-            Array.prototype.push.apply(this.vertices, this.balls[i].vertices);
-            console.log("hey");
-        }
-        
-
-        
-    }
-
-}
 // 
 // Implicit equation of a line, see eq. 8 in lect 5
 //
@@ -124,89 +43,9 @@ function Line() {
     this.C = 0.0;
 }
 
-function Pocket(pos){
-
-    this.color = vec3(0.1, 0.1, 0.1);
-    this.pos = pos;
-    this.radius = 2;
-
-
-}
-class Table{
-    constructor(){
-        this.color = vec3(0.2, 0.5, 0.2);
-        this.dims = vec2(84, 56);
-        this.pockets = [Pocket(vec2(2,2)), Pocket(vec2(82,2)), Pocket(vec2(82,54)), Pocket(vec2(2,54))];
-        //0 index for cue
-        this.ballBag = new BallBag();
-        this.wood_width = 5.0;
-        this.vertices = [];
-        this.table_vertices = [
-            0.0, 0.0, 0.0, this.color[0], this.color[1], this.color[2],
-            this.dims[0], 0.0, 0.0, this.color[0], this.color[1], this.color[2],
-            this.dims[0], this.dims[1], 0.0, this.color[0], this.color[1], this.color[2],
-            0.0, 0.0, 0.0, this.color[0], this.color[1], this.color[2],
-            0.0, this.dims[1], 0.0, this.color[0], this.color[1], this.color[2],
-            this.dims[0], this.dims[1], 0.0, this.color[0], this.color[1], this.color[2],
-        ];
-
-        this.projection = ortho(left, right, bottom, topBound, near, far);
-        this.model_view = mat4();
-        
-
-    
-    }
-
-    init(){
-        this.program = initShaders( gl, "vertex-shader", "fragment-shader" ); // Compile and link shaders to form a program
-        gl.useProgram(this.program);
-
-        this.ballBag.init();
-        Array.prototype.push.apply(this.vertices, this.table_vertices);
-        Array.prototype.push.apply(this.vertices, this.ballBag.vertices);
-
-
-        
-        this.vboid = gl.createBuffer();                                       
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vboid);                          
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.vertices), gl.STATIC_DRAW); 
-        
-        
-        
-        var vPosition = gl.getAttribLocation( this.program, "vPosition" );        
-        gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 6 * Float32Array.BYTES_PER_ELEMENT, 0);       
-        gl.enableVertexAttribArray(vPosition); 
-        
-        var vColor = gl.getAttribLocation( this.program, "vColor" );        
-        gl.vertexAttribPointer(vColor,3, gl.FLOAT, false, 6 * Float32Array.BYTES_PER_ELEMENT, 3 * Float32Array.BYTES_PER_ELEMENT);       
-        gl.enableVertexAttribArray(vColor);
-        
-        this.projLoc = gl.getUniformLocation(this.program, "u_proj");
-        this.modelViewLoc = gl.getUniformLocation(this.program, "u_mv");
-
-        gl.uniformMatrix4fv(this.projLoc, false, flatten(this.projection));          
-        gl.uniformMatrix4fv(this.modelViewLoc, false, flatten(this.model_view));
-
-    }
-
-    update(){
-        this.ballBag.update();
-    }
-
-    render(){
-        Array.prototype.push.apply(this.vertices, this.table_vertices);
-        Array.prototype.push.apply(this.vertices, this.ballBag.vertices);
-        this.update();
-
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.vertices), gl.DYNAMIC_DRAW);               
-        gl.drawArrays(gl.TRIANGLES, 0, 6 + this.ballBag.vertex_count + 3);
-
-
-    }
-}
-
 
 // Globals
+var balls = [];             // Array of pool balls (With a full rack this will be 15 colored balls, plus one cue ball
 var cushsionLines = [];     // Array of pool table cushions (this will be a size of 4)
 
 var simTime = 0.0;          // Simulation clock
@@ -227,18 +66,30 @@ window.onload = function init()
     
     gl = WebGLUtils.setupWebGL( canvas );                // Get an OpenGL context
     if (!gl) { alert("WebGL isn't available"); }
-    table = new Table();
-    table.init();
+
     //
     //  Configure WebGL
     //
     gl.viewport(0, 0, canvas.width, canvas.height);  // What part of html are we looking at?
-    gl.clearColor(0.32, 0.32, 0.32, 1.0);               // Set background color of the viewport to black
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);               // Set background color of the viewport to black
 
     var aspect = canvas.width / canvas.height;       // get the aspect ratio of the canvas
     left *= aspect;                                  // left limit of world coords
     right *= aspect;                                 // right limit of world coords
     
+    //  Load shaders and initialize attribute buffers
+    program = initShaders( gl, "vertex-shader", "fragment-shader" ); // Compile and link shaders to form a program
+    gl.useProgram(program);                                          // Make this the active shaer program
+
+    var cueBall = new Ball;
+    cueBall.position = vec2(45.0, 27.4);
+
+    var ball2 = new Ball;
+    ball2.color = vec3(0.8, 0.8, 0.0);
+    ball2.position = vec2(21.0, 28.0);
+
+    balls.push(cueBall);
+    balls.push(ball2);
 
     //
     // left, see equation 8 in lect5
@@ -249,34 +100,63 @@ window.onload = function init()
     MakeCushionLine(leftCushion, p, norm);
     cushsionLines.push(leftCushion);
 
-    // // Right
+    // Right
     var rightCushion = new Line;
     var p = vec2(84.0, 28.0);
     var norm = vec2(-1.0, 0.0);
     MakeCushionLine(rightCushion, p, norm);
     cushsionLines.push(rightCushion);
 
-
-
+    // Bot
     
-
-
-
+    // Top
     
-    // // Line
+    // Rectangle
+
+    var tableVertices = [
+        vec2(0.0, 0.0),
+        vec2(84.0, 0.0),
+        vec2(84.0, 56.0),
+        vec2(0.0, 56.0)
+    ];
+
+    // Create VBO for table
+    tableBufferId = gl.createBuffer();                                       // Generate a VBO id
+    gl.bindBuffer(gl.ARRAY_BUFFER, tableBufferId);                           // Bind this VBO to be the active one
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(tableVertices), gl.STATIC_DRAW);  // Load the VBO with vertex data
+
+    // Circle
+
+    circleVertices.push(vec2(0.0, 0.0));
+    for (var degs = 0; degs <= 360; degs += 5) {
+        var radians = RadiansToDegs(degs);
+
+        circleVertices.push(vec2(Math.cos(radians), Math.sin(radians)));
+    }
+
+
+    // Create VBO for circle
+    circleBufferId = gl.createBuffer();                                       // Generate a VBO id
+    gl.bindBuffer(gl.ARRAY_BUFFER, circleBufferId);                           // Bind this VBO to be the active one
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(circleVertices), gl.STATIC_DRAW);  // Load the VBO with vertex data
+    
+    // Line
 
     var lineVertices = [
         linePoint1_W,
         linePoint2_W,
     ];
 
-    // // Load the data into the GPU
+    // Load the data into the GPU
     linebufferId = gl.createBuffer();                                        // Generate a VBO id
-    //gl.bindBuffer(gl.ARRAY_BUFFER, linebufferId);                            // Bind this VBO to be the active one
-    //gl.bufferData(gl.ARRAY_BUFFER, flatten(lineVertices), gl.DYNAMIC_DRAW);  // Load the VBO with vertex data
+    gl.bindBuffer(gl.ARRAY_BUFFER, linebufferId);                            // Bind this VBO to be the active one
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(lineVertices), gl.DYNAMIC_DRAW);  // Load the VBO with vertex data
 
-    // // Associate our shader variables with our data buffer
+    // Associate our shader variables with our data buffer
     
+    var vPosition = gl.getAttribLocation( program, "vPosition" );        // Link js vPosition with "vertex shader attribute variable" - vPosition
+    gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0 );        // Specify layout of VBO memory
+    gl.enableVertexAttribArray(vPosition);                               // Enable this attribute
 
     // Register mouse callbacks
     canvas.addEventListener("mousedown", mouseDown, false);
@@ -293,19 +173,18 @@ window.onload = function init()
 
 // Function that gets called to parse keydown events
 function dealWithKeyboard(e) {
-    var diff = 1.5;
     switch (e.keyCode) {
         case 37: // left arrow pan left
-            { left += -diff; right += -diff };
+            { left += -0.1; right += -0.1 };
             break;
         case 38: // up arrow pan left
-            { bottom += diff; topBound += diff };
+            { bottom += 0.1; topBound += 0.1 };
             break;
         case 39: // right arrow pan left
-            { left += diff; right += diff };
+            { left += 0.1; right += 0.1 };
             break;
         case 40: // down arrow pan left
-            { bottom += -diff; topBound += -diff };
+            { bottom += -0.1; topBound += -0.1 };
             break;
     }
 }
@@ -335,7 +214,7 @@ function RadiansToDegs(degree) {
 
 var mouseDown = function (e) {
     drag = true;
-    console.log("hey");
+
     var point_S = vec2(e.pageX, Math.abs(e.pageY - canvas.height))
     linePoint1_W = ScreenToWorld2D(point_S);
 
@@ -349,7 +228,7 @@ var mouseUp = function (e) {
     var v = vec2();
     v = subtract(linePoint1_W, linePoint2_W);
 
-    table.ballBag.balls[0].velocity = v;
+    balls[0].velocity = v;
 };
 
 var mouseMove = function (e) {
@@ -416,8 +295,8 @@ function DistToBall(i, j)
 
 function DistToLine(i, j)
 {
-    var dist = DistToPoint(j, table.ballBag.balls[i].position);   // distance from circle center to cushion line
-    dist -= table.ballBag.balls[i].radius;                        // subtract away circle radius
+    var dist = DistToPoint(j, balls[i].position);   // distance from circle center to cushion line
+    dist -= balls[i].radius;                        // subtract away circle radius
 
     return dist;
 }
@@ -431,8 +310,8 @@ function DistToLine(i, j)
 
 function ClearForces(i)
 {
-    table.ballBag.balls[i].forceAccum[0] = 0.0;
-    table.ballBag.balls[i].forceAccum[1] = 0.0;
+    balls[i].forceAccum[0] = 0.0;
+    balls[i].forceAccum[1] = 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -443,10 +322,10 @@ function ClearForces(i)
 
 function ComputeDerivs(i)
 {
-    xDot = table.ballBag.balls[i].velocity;               // xDot = v
+    xDot = balls[i].velocity;               // xDot = v
 
     // vDot = f/m
-    vDot = mult(table.ballBag.balls[i].recpMass, table.ballBag.balls[i].forceAccum);
+    vDot = mult(balls[i].recpMass, balls[i].forceAccum);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -460,10 +339,10 @@ function ApplyForces(i) {
    
     // Apply Viscous Drag
 
-    v = negate(table.ballBag.balls[i].velocity);                     // Have velocity point in opposite direction
+    v = negate(balls[i].velocity);                     // Have velocity point in opposite direction
     v = mult(dragForce, v);                            // Scalar multiply drag force by opposite pointing vector
 
-    table.ballBag.balls[i].forceAccum = add(table.ballBag.balls[i].forceAccum, v); // Add to forcr accumulator
+    balls[i].forceAccum = add(balls[i].forceAccum, v); // Add to forcr accumulator
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -477,11 +356,11 @@ function ApplyForces(i) {
 function AdvanceTime(delta)
 {
      simTime += delta;
-     for (i = 0; i < table.ballBag.balls.length; i++) {
+     for (i = 0; i < balls.length; i++) {
          ClearForces(i);
      }
      // Solve ODEs using Euler's method
-     for (i = 0; i < table.ballBag.balls.length; i++) {
+     for (i = 0; i < balls.length; i++) {
         ApplyForces(i);
         ComputeDerivs(i);
 
@@ -491,14 +370,14 @@ function AdvanceTime(delta)
         delta_v = mult(delta, xDot);
         delta_a = mult(delta, vDot);
 
-        table.ballBag.balls[i].position = add(table.ballBag.balls[i].position, delta_v);
-        table.ballBag.balls[i].velocity = add(table.ballBag.balls[i].velocity, delta_a);
+        balls[i].position = add(balls[i].position, delta_v);
+        balls[i].velocity = add(balls[i].velocity, delta_a);
      }
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 //
-// Compute an impulse between two circles (table.ballBag.balls) colliding in the 2D plane See
+// Compute an impulse between two circles (balls) colliding in the 2D plane See
 // lect 9 slides, eqs. 9-13 - 9-17
 //
 ///////////////////////////////////////////////////////////////////////////////////
@@ -549,44 +428,57 @@ function render() {
 
     gl.clear(gl.COLOR_BUFFER_BIT);                             // Clear the canvas with gl.clearColor defined above
 
-    
+    var PMat;                                                  // js variable to hold projection matrix
+    PMat = ortho(left, right, bottom, topBound, near, far);    // Call function to compute orthographic projection matrix
+    var P_loc = gl.getUniformLocation(program, "P");           // Get Vertex shader memory location for P
+    gl.uniformMatrix4fv(P_loc, false, flatten(PMat));          // Set uniform variable P on GPU 
 
+    var MV = mat4();                                           // Identity Matrix
+    var MV_loc = gl.getUniformLocation(program, "MV");         // Get Vertex shader memory location for P
+    gl.uniformMatrix4fv(MV_loc, false, flatten(MV));
+
+    var colorLoc = gl.getUniformLocation(program, "color");    // Get fragment shader memory location of color
+    var vPosition = gl.getAttribLocation(program, "vPosition");  // Link js vPosition with "vertex shader attribute variable" - vPosition
 
     // Draw the pool table, and pockets (circles), need to set colorLoc to the proper color for pixel shade
                                                                   // Set RGB color of line
-    table.render();
-    // Call gl.drawArrays
+    gl.bindBuffer(gl.ARRAY_BUFFER, tableBufferId);                // Bind this VBO to be the active one
+
+    gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);  // Specify layout of VBO memory
+    gl.enableVertexAttribArray(vPosition);                        // Enable this attribute
+
+                                                                  // Call gl.drawArrays
 
     // Draw drag line
     if (drag)
     {
-        // gl.uniform3f(colorLoc, 1.0, 1.0, 0.0);                     // Set RGB color of line
-        // gl.bindBuffer(gl.ARRAY_BUFFER, linebufferId);                            // Bind this VBO to be the active one
-        // gl.bufferData(gl.ARRAY_BUFFER, flatten(lineVertices), gl.DYNAMIC_DRAW);  // Load the VBO with vertex data
+        gl.uniform3f(colorLoc, 1.0, 1.0, 0.0);                     // Set RGB color of line
+        gl.bindBuffer(gl.ARRAY_BUFFER, linebufferId);                            // Bind this VBO to be the active one
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(lineVertices), gl.DYNAMIC_DRAW);  // Load the VBO with vertex data
 
-        // gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);  // Specify layout of VBO memory
-        // gl.enableVertexAttribArray(vPosition);                        // Enable this attribute
+        gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);  // Specify layout of VBO memory
+        gl.enableVertexAttribArray(vPosition);                        // Enable this attribute
 
-        // gl.drawArrays(gl.LINES, 0, 2);
+        gl.drawArrays(gl.LINES, 0, 2);
     }
 
-    // Render pool table.ballBag.balls
-   // gl.bindBuffer(gl.ARRAY_BUFFER, circleBufferId);                   // Bind this VBO to be the active one
-    //gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);      // Specify layout of VBO memory
-    //gl.enableVertexAttribArray(vPosition);
+    // Render pool balls
+    gl.bindBuffer(gl.ARRAY_BUFFER, circleBufferId);                   // Bind this VBO to be the active one
+    gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);      // Specify layout of VBO memory
+    gl.enableVertexAttribArray(vPosition);
 
     // Loop to render each ball i, need to set pixel uniform shader colorLoc, and need to build MV_loc matrix via ball position
-    //gl.uniform3f(colorLoc, .5, .5, .5);
-    for (i = 0; i < table.ballBag.balls.length; i++)
+    gl.uniform3f(colorLoc, .5, .5, .5);
+    for (i = 0; i < balls.length; i++)
     {
-        // var col = table.ballBag.balls[i].color;
-        //                                                                // Set RGB color of ball
+        var col = balls[i].color;
+                                                                       // Set RGB color of ball
 
-        // var pos = table.ballBag.balls[i].position;        
-        //                                                                // Create translate matrix MV         
-        // gl.uniformMatrix4fv(MV_loc, false, flatten(MV));                
+        var pos = balls[i].position;        
+                                                                       // Create translate matrix MV         
+        gl.uniformMatrix4fv(MV_loc, false, flatten(MV));                
 
-        // gl.drawArrays(gl.TRIANGLE_FAN, 0, 74);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 74);
     }
  
     requestAnimFrame(render);                                          // swap buffers, continue render loop
