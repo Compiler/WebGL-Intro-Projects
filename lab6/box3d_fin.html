@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<Luke Roche>
+<html>
+
+<p> </p>
+<button id = "Button1">Sweep Up</button>
+<button id = "Button2">Sweep Down</button>
+<button id = "Button3">Sweep Right</button>
+<button id = "Button4">Sweep Left</button>
+<button id = "Button5">Dolly Out</button>
+<button id = "Button6">Dolly In</button>
+<button id = "Button7">Wireframe</button>
+
+<p> </p>
+<button id="Button9">zBuffer on</button>
+<button id="Button10">zBuffer off</button>
+<p> </p>
+<button id="Button11">Perspective</button>
+<button id="Button12">Orthographic</button>
+<p> </p>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute  vec3 vPosition;
+attribute  vec3 vNormal;
+attribute  vec3 bcCoord;
+
+varying    vec4 fColor;
+varying    vec3 vBC;
+
+uniform vec4 lightPosition;
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform float shininess;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 invProjectionMatrix;
+uniform mat4 normalMatrix;
+
+void main() 
+{
+    vec4 P  = modelViewMatrix * vec4(vPosition, 1.0);            
+    vec4 PL = modelViewMatrix * lightPosition;                   
+    vec4 E = invProjectionMatrix * vec4(0.0, 0.0, -1.0, 0.0);    
+
+    vec3 V = normalize(E.xyz * P.w - P.xyz * E.w);               
+
+    
+    vec3 L = normalize((PL - P).xyz);                            
+   
+    
+    vec3 N = normalize((normalMatrix * vec4(vNormal, 0.0)).xyz);
+
+    
+    vec4 ambient = ambientProduct;
+
+    float Kd = max(dot(L, N), 0.0);
+    vec4  diffuse = Kd * diffuseProduct;
+
+    float Ks = pow(max(dot(N, V), 0.0), shininess);
+    vec4  specular = Ks * specularProduct;
+
+    if (dot(L, N) < 0.0) {
+       specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+
+    fColor = ambient + diffuse + specular;
+    fColor.a = 1.0;
+
+    vBC = bcCoord;
+    gl_Position = projectionMatrix * modelViewMatrix* vec4(vPosition, 1.0);
+} 
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+varying vec4 fColor;
+varying vec3 vBC;
+uniform float width;
+
+void
+main()
+{
+    if(any(lessThan(vBC, vec3(width)))){
+       gl_FragColor = fColor;
+    }
+    else{
+       discard;
+    }
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MVnew.js"></script>
+<script type="text/javascript" src="box3d_fin.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="720" height="720">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+</body>
+</html>

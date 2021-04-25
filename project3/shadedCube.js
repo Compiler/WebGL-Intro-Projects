@@ -55,9 +55,9 @@ var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
 // Smooth red plastic
 var materialAmbient = vec4(0.8, 0.0, 0.0, 1.0);
-var materialDiffuse = vec4(0.8, 0.0, 0.0, 1.0);
+var materialDiffuse = vec4(0.8, 0.3, 0.6, 1.0);
 var materialSpecular = vec4(0.8, 0.8, 0.8, 1.0);
-var materialShininess = 100.0;
+var materialShininess = 100.0 / 100.0;
 
 var near = -5;
 var far = 5;
@@ -75,6 +75,8 @@ var bottom = -1.5;
 var modelViewMatrix, projectionMatrix, normalMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc;
 var eye;
+var lightAtEye = false;
+var roughness =  5;
 
 const at = vec3(0.0, 0.0, 0.0);
 const up = vec3(0.0, 1.0, 0.0);
@@ -190,18 +192,8 @@ window.onload = function init() {
 
     // Material uniforms
 
-    var ambientProduct = mult(lightAmbient, materialAmbient);
-    var diffuseProduct = mult(lightDiffuse, materialDiffuse);
-    var specularProduct = mult(lightSpecular, materialSpecular);
+    
 
-    console.log("ambientProduct = " + ambientProduct[0] + " " + ambientProduct[1] + " " + ambientProduct[2]);
-
-    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition));
-
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materialShininess);
 
     // buttons to change viewing parameters
 
@@ -222,6 +214,20 @@ window.onload = function init() {
     document.getElementById("Button10").onclick = function () { gl.disable(gl.DEPTH_TEST); };  // Z-buffer off
     document.getElementById("Button11").onclick = function () { perspectiveProj = true; };
     document.getElementById("Button12").onclick = function () { perspectiveProj = false; };
+    document.getElementById("Button13").onclick = function () { lightAtEye = true; };
+    document.getElementById("Button14").onclick = function () { lightAtEye = false; };
+    document.getElementById("myRange").onchange = function () { roughness = this.value / 255.0; console.log(roughness) };
+    document.getElementById("lr").onchange = function () {  lightDiffuse[0] = this.value/255.0 };
+    document.getElementById("lg").onchange = function () {  lightDiffuse[1] = this.value/255.0 };
+    document.getElementById("lb").onchange = function () {  lightDiffuse[2] = this.value/255.0 };
+
+    document.getElementById("dr").onchange = function () {  materialDiffuse[0] = this.value/255.0 };
+    document.getElementById("dg").onchange = function () {  materialDiffuse[1] = this.value/255.0 };
+    document.getElementById("db").onchange = function () {  materialDiffuse[2] = this.value/255.0 };
+
+    document.getElementById("macr").onchange = function () {  materialAmbient[0] = this.value/255.0 };
+    document.getElementById("macg").onchange = function () {  materialAmbient[1] = this.value/255.0 };
+    document.getElementById("macb").onchange = function () {  materialAmbient[2] = this.value/255.0 };
        
     render();
 }
@@ -278,6 +284,27 @@ var render = function() {
         var invProjectionMatrix = inverse4(projectionMatrix);
 
         var I = mult(invProjectionMatrix, projectionMatrix);
+        if(lightAtEye){
+            gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), flatten(v));
+            lightPosition = v;
+        }else{
+            gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition));
+        }
+
+        
+        var ambientProduct = mult(lightAmbient, materialAmbient);
+        var diffuseProduct = mult(lightDiffuse, materialDiffuse);
+        var specularProduct = mult(lightSpecular, materialSpecular);
+
+        gl.uniform4fv(gl.getUniformLocation(program, "viewPos"), flatten(v));
+        gl.uniform4fv(gl.getUniformLocation(program, "lightColor"), flatten(lightDiffuse));
+        gl.uniform4fv(gl.getUniformLocation(program, "objectColor"), flatten(materialDiffuse));
+
+        gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+        gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+        gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+        gl.uniform1f(gl.getUniformLocation(program, "shininess"), materialShininess * roughness * 2.0);
+        gl.uniform1f(gl.getUniformLocation(program, "viewPos"), flatten(v));
 
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));   
         gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));

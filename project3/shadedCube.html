@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!––----------------------------–-------------------->
-<!–– Prof R CG lect14 lighting, shading            ––>
-<!––---------------------––-----–-------------------->
+<!ï¿½ï¿½----------------------------ï¿½-------------------->
+<!ï¿½ï¿½ Prof R CG lect14 lighting, shading            ï¿½ï¿½>
+<!ï¿½ï¿½---------------------ï¿½ï¿½-----ï¿½-------------------->
 <html>
 
 <p> </p>
@@ -12,26 +12,53 @@
 <button id = "Button5">Dolly Out</button>
 <button id = "Button6">Dolly In</button>
 <button id = "Button7">Wireframe</button>
-
-<p> </p>
 <button id="Button9">zBuffer on</button>
 <button id="Button10">zBuffer off</button>
-<p> </p>
 <button id="Button11">Perspective</button>
 <button id="Button12">Orthographic</button>
+<button id="Button13">Light At Eye</button>
+<button id="Button14">Light Fixed</button>
+<p> </p>
+<input type="range" min="0" max="255" value="50" class="slider" id="myRange"> Specular Hightlight (How rough?)</input>
+<p> </p>
+<p> </p>
+Material Ambient Color <br>
+<input type="range" min="0" max="255" value="50" class="slider" id="macr"> R </input><br>
+<input type="range" min="0" max="255" value="50" class="slider" id="macg"> G </input><br>
+<input type="range" min="0" max="255" value="50" class="slider" id="macb"> B </input>
+<p> </p>
+
+<p> </p>
+Diffuse Color <br>
+<input type="range" min="0" max="255" value="50" class="slider" id="dr"> R </input><br>
+<input type="range" min="0" max="255" value="50" class="slider" id="dg"> G </input><br>
+<input type="range" min="0" max="255" value="50" class="slider" id="db"> B </input>
+<p> </p>
+
+<p> </p>
+Light Color <br>
+<input type="range" min="0" max="255" value="50" class="slider" id="lr"> R </input><br>
+<input type="range" min="0" max="255" value="50" class="slider" id="lg"> G </input><br>
+<input type="range" min="0" max="255" value="50" class="slider" id="lb"> B </input>
 <p> </p>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
+precision mediump float;
 
 attribute  vec3 vPosition;
 attribute  vec3 vNormal;
 attribute  vec3 bcCoord;
 
-varying    vec4 fColor;
-varying    vec3 vBC;
+varying     vec4 fColor;
+varying     vec3 vBC;
+varying     vec3 FragPos;
+varying     vec3 oNormal;
+varying     vec4 oP;
 
 uniform vec4 lightPosition;
 uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform vec4 objectColor;
+uniform vec4 lightColor;
 uniform float shininess;
 
 uniform mat4 modelViewMatrix;
@@ -44,7 +71,7 @@ void main()
     vec4 P  = modelViewMatrix * vec4(vPosition, 1.0);            // vertex in eye coord. system
     vec4 PL = modelViewMatrix * lightPosition;                   // light point in eye coord. system
     vec4 E = invProjectionMatrix * vec4(0.0, 0.0, -1.0, 0.0);    // viewpoint(eye) in clip space
-
+      oP=P;
     vec3 V = normalize(E.xyz * P.w - P.xyz * E.w);               // Map viewpoint from clip space to eye space
 
     //vec3 L = V; // light at eye                                // light at eye
@@ -57,7 +84,7 @@ void main()
     vec4 ambient = ambientProduct;
 
     float Kd = max(dot(L, N), 0.0);
-    vec4  diffuse = Kd * diffuseProduct;
+    vec4  diffuse1 = Kd * diffuseProduct;
 
     float Ks = pow(max(dot(N, V), 0.0), shininess);
     vec4  specular = Ks * specularProduct;
@@ -66,11 +93,14 @@ void main()
        specular = vec4(0.0, 0.0, 0.0, 1.0);
     } 
 
-    fColor = ambient + diffuse + specular;
+    fColor = ambient + diffuse1 + specular;
     fColor.a = 1.0;
-
     vBC = bcCoord;
     gl_Position = projectionMatrix * modelViewMatrix* vec4(vPosition, 1.0);
+
+    vec3 normal = N;
+    oNormal = N;
+
 } 
 </script>
 
@@ -78,19 +108,42 @@ void main()
 
 precision mediump float;
 
-varying vec4 fColor;
-varying vec3 vBC;
-uniform float width;
+varying     vec4 fColor;
+varying     vec3 vBC;
+varying     vec4 oP;
+varying     vec3 oNormal;
 
-void
-main()
+uniform float width;
+uniform vec4 lightPosition;
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform vec4 objectColor;
+uniform vec4 lightColor;
+uniform float shininess;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 invProjectionMatrix;
+uniform mat4 normalMatrix;
+uniform vec4 viewPos;
+
+void main()
 {
-    if(any(lessThan(vBC, vec3(width)))){
-       gl_FragColor = fColor;
-    }
-    else{
-       discard;
-    }
+
+      //blinn-phong
+      vec3 ambient = ambientProduct.xyz * lightColor.xyz;
+      vec3 lightDir = normalize(lightPosition - oP).xyz;  
+      vec3 viewDir = normalize(viewPos.xyz - oP.xyz);
+      vec3 halfwayDir = normalize(lightDir + viewDir);
+      vec3 reflectDir = reflect(-lightDir, oNormal);  
+      float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+      vec3 specular = shininess * spec * lightColor.xyz;  
+
+      float diff = max(dot(oNormal, lightDir), 0.0);
+      vec3 diffuse = diff* lightColor.xyz;
+      vec3 result = (diffuse + ambient + specular) * objectColor.xyz;
+      gl_FragColor = vec4(result, 1.0);
+
+
 }
 </script>
 
